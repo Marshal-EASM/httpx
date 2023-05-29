@@ -59,7 +59,7 @@ type Result struct {
 	ChainStatusCodes   []int                  `json:"chain_status_codes,omitempty" csv:"chain_status_codes"`
 	A                  []string               `json:"a,omitempty" csv:"a"`
 	CNAMEs             []string               `json:"cname,omitempty" csv:"cname"`
-	Technologies       []string               `json:"tech,omitempty" csv:"tech"`
+	Technologies       string                 `json:"tech,omitempty" csv:"tech"`
 	Extracts           map[string][]string    `json:"extracts,omitempty" csv:"extracts"`
 	Chain              []httpx.ChainItem      `json:"chain,omitempty" csv:"chain"`
 	Words              int                    `json:"words" csv:"words"`
@@ -73,6 +73,7 @@ type Result struct {
 	HTTP2              bool                   `json:"http2,omitempty" csv:"http2"`
 	Pipeline           bool                   `json:"pipeline,omitempty" csv:"pipeline"`
 	HeadlessBody       string                 `json:"headless_body,omitempty" csv:"headless_body"`
+	JSLink             []string               `json:"js_link" csv:"js_link"`
 	ScreenshotBytes    []byte                 `json:"screenshot_bytes,omitempty" csv:"screenshot_bytes"`
 	StoredResponsePath string                 `json:"stored_response_path,omitempty" csv:"stored_response_path"`
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`

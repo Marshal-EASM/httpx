@@ -211,6 +211,7 @@ type Options struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	TechRule                  string
 	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
@@ -223,6 +224,7 @@ type Options struct {
 	MaxResponseBodySizeToRead int
 	OutputExtractRegexs       goflags.StringSlice
 	OutputExtractPresets      goflags.StringSlice
+	OutputExtractJS           bool
 	RateLimit                 int
 	RateLimitMinute           int
 	Probe                     bool
@@ -295,7 +297,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "display page title"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
-		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
+		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on yaml rule"),
+		flagSet.StringVarP(&options.TechRule, "tech-rule", "tr", "", "yaml rule file to use for technology detection"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
@@ -324,6 +327,7 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("extractor", "Extractor",
+		flagSet.BoolVarP(&options.OutputExtractJS, "extract-jslink", "ejs", false, "extract js links from response body"),
 		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "display response content with matched regex", goflags.StringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, fmt.Sprintf("display response content matched by a pre-defined regex (%s)", strings.Join(maps.Keys(customextract.ExtractPresets), ",")), goflags.StringSliceOptions),
 	)

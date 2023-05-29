@@ -7,7 +7,9 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"github.com/projectdiscovery/httpx/common/tech"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -16,7 +18,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -72,6 +73,7 @@ type Runner struct {
 	wappalyzer      *wappalyzer.Wappalyze
 	fastdialer      *fastdialer.Dialer
 	scanopts        ScanOptions
+	tech            tech.TechDetecter
 	hm              *hybrid.HybridMap
 	stats           clistats.StatisticsClient
 	ratelimiter     ratelimit.Limiter
@@ -86,7 +88,10 @@ func New(options *Options) (*Runner, error) {
 	}
 	var err error
 	if options.TechDetect {
-		runner.wappalyzer, err = wappalyzer.New()
+		if options.TechRule == "" {
+			gologger.Error().Msg("Tech-Detect requires a rules file")
+		}
+		err = runner.tech.Init(options.TechRule)
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
@@ -1476,22 +1481,45 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", resp.Duration))
 	}
 
-	var technologies []string
+	//var technologies []string
+	//if scanopts.TechDetect {
+	//	matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
+	//	for match := range matches {
+	//		technologies = append(technologies, match)
+	//	}
+	//
+	//	if len(technologies) > 0 {
+	//		sort.Strings(technologies)
+	//		technologies := strings.Join(technologies, ",")
+	//
+	//		builder.WriteString(" [")
+	//		if !scanopts.OutputWithNoColor {
+	//			builder.WriteString(aurora.Magenta(technologies).String())
+	//		} else {
+	//			builder.WriteString(technologies)
+	//		}
+	//		builder.WriteRune(']')
+	//	}
+	//}
+	techList := ""
 	if scanopts.TechDetect {
-		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
-		for match := range matches {
-			technologies = append(technologies, match)
+		techResp := http.Response{
+			Header: resp.Headers,
+			Body:   ioutil.NopCloser(bytes.NewReader(resp.Data)),
+			TLS:    nil,
 		}
 
-		if len(technologies) > 0 {
-			sort.Strings(technologies)
-			technologies := strings.Join(technologies, ",")
+		techList, err = r.tech.Detect(&techResp)
+		if err != nil {
+			gologger.Warning().Msgf("detect techList error: %s", err)
+		}
 
+		if techList != "" {
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
-				builder.WriteString(aurora.Magenta(technologies).String())
+				builder.WriteString(aurora.Magenta(techList).String())
 			} else {
-				builder.WriteString(technologies)
+				builder.WriteString(techList)
 			}
 			builder.WriteRune(']')
 		}
@@ -1510,7 +1538,18 @@ retry:
 			}
 		}
 	}
+	var jsLink []string
+	// extract js link
+	if r.options.OutputExtractJS {
+		jsLink, err = resp.ExtractJSLink(fullURL)
+		if err != nil {
+			gologger.Warning().Msgf("extract js link error: %s", err)
+		}
+		if len(jsLink) > 0 {
+			builder.WriteString(" [" + strings.Join(jsLink, ",") + "]")
+		}
 
+	}
 	var finalURL string
 	if resp.HasChain() {
 		finalURL = resp.GetChainLastURL()
@@ -1737,7 +1776,7 @@ retry:
 		CDN:                isCDN,
 		CDNName:            cdnName,
 		ResponseTime:       resp.Duration.String(),
-		Technologies:       technologies,
+		Technologies:       techList,
 		FinalURL:           finalURL,
 		FavIconMMH3:        faviconMMH3,
 		FaviconPath:        faviconPath,
@@ -1749,6 +1788,7 @@ retry:
 		ASN:                asnResponse,
 		ExtractRegex:       extractRegex,
 		StoredResponsePath: responsePath,
+		JSLink:             jsLink,
 		ScreenshotBytes:    screenshotBytes,
 		ScreenshotPath:     screenshotPath,
 		HeadlessBody:       headlessBody,
