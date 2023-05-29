@@ -1,0 +1,7 @@
+info:
+  company: SGW
+  product: SGW
+  lang: C
+  server: SGW
+  category: 'Server'
+matches: banner.icontains('SGW')
