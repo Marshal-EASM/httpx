@@ -3,7 +3,7 @@ scanme.sh {{binary}} -silent -l test-data/request.txt
 scanme.sh {{binary}} -silent -request test-data/raw-request.txt
 scanme.sh {{binary}} -silent -title
 scanme.sh {{binary}} -silent -sc
-scanme.sh {{binary}} -silent -td
+scanme.sh {{binary}} -silent -td -tr test-data/test.yaml
 scanme.sh {{binary}} -silent -probe
 scanme.sh {{binary}} -silent -no-fallback
 scanme.sh {{binary}} -silent -cl
