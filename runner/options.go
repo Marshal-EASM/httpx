@@ -268,6 +268,7 @@ type Options struct {
 	DisableUpdateCheck        bool
 	NoDecode                  bool
 	Screenshot                bool
+	SaveScreenshot            bool
 	UseInstalledChrome        bool
 }
 
@@ -309,6 +310,7 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("headless", "Headless",
+		flagSet.BoolVarP(&options.SaveScreenshot, "save-ss", "sss", false, "enable saving screenshot of the page using headless browser"),
 		flagSet.BoolVarP(&options.Screenshot, "screenshot", "ss", false, "enable saving screenshot of the page using headless browser"),
 		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "enable using local installed chrome for screenshot"),
 	)
@@ -570,10 +572,10 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
 	}
 
-	if options.Screenshot && !options.StoreResponse {
-		gologger.Debug().Msgf("automatically enabling store response")
-		options.StoreResponse = true
-	}
+	//if options.Screenshot && !options.StoreResponse {
+	//	gologger.Debug().Msgf("automatically enabling store response")
+	//	options.StoreResponse = true
+	//}
 	if options.StoreResponse && options.StoreResponseDir == "" {
 		gologger.Debug().Msgf("Store response directory not specified, using \"%s\"\n", DefaultOutputDirectory)
 		options.StoreResponseDir = DefaultOutputDirectory

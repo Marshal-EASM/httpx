@@ -578,7 +578,7 @@ func (r *Runner) Close() {
 // RunEnumeration on targets for httpx client
 func (r *Runner) RunEnumeration() {
 	// Try to create output folders if it doesn't exist
-	if r.options.StoreResponse && !fileutil.FolderExists(r.options.StoreResponseDir) {
+	if r.options.StoreResponse && !fileutil.FolderExists(r.options.StoreResponseDir) && r.options.SaveScreenshot {
 		// main folder
 		if err := os.MkdirAll(r.options.StoreResponseDir, os.ModePerm); err != nil {
 			gologger.Fatal().Msgf("Could not create output directory '%s': %s\n", r.options.StoreResponseDir, err)
@@ -667,7 +667,7 @@ func (r *Runner) RunEnumeration() {
 			}
 			defer indexFile.Close() //nolint
 		}
-		if r.options.Screenshot {
+		if r.options.Screenshot && r.options.SaveScreenshot {
 			var err error
 			indexScreenshotPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "index_screenshot.txt")
 			if r.options.Resume {
@@ -1734,10 +1734,12 @@ retry:
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
-			_ = fileutil.CreateFolder(screenshotBaseDir)
-			err := os.WriteFile(screenshotPath, screenshotBytes, 0644)
-			if err != nil {
-				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
+			if r.options.SaveScreenshot {
+				_ = fileutil.CreateFolder(screenshotBaseDir)
+				err := os.WriteFile(screenshotPath, screenshotBytes, 0644)
+				if err != nil {
+					gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
+				}
 			}
 		}
 	}
