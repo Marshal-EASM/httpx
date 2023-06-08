@@ -147,3 +147,20 @@ func InsertInto(s string, interval int, sep rune) string {
 func Base64(bin []byte) string {
 	return base64.StdEncoding.EncodeToString(bin)
 }
+func RemoveDuplicates(arr []string) []string {
+	seen := make(map[string]bool)
+	result := []string{}
+
+	for _, str := range arr {
+		lowerStr := strings.ToLower(str)
+
+		if seen[lowerStr] {
+			continue
+		}
+
+		result = append(result, lowerStr)
+		seen[lowerStr] = true
+	}
+
+	return result
+}

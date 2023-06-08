@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type TechDetecter struct {
@@ -23,6 +24,9 @@ func (t *TechDetecter) Init(rulePath string) error {
 	if IsDir(rulePath) {
 		files := ReadDir(rulePath)
 		for _, file := range files {
+			if !strings.Contains(file, ".yaml") {
+				continue
+			}
 			rule, err := ParseYaml(file)
 			if err != nil {
 				gologger.Error().Msgf(fmt.Sprintf("file %s error:%s", file, err))
