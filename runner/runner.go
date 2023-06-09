@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -88,10 +89,7 @@ func New(options *Options) (*Runner, error) {
 	}
 	var err error
 	if options.TechDetect {
-		if options.TechRule == "" {
-			gologger.Error().Msg("Tech-Detect requires a rules file")
-		}
-		err = runner.tech.Init(options.TechRule)
+		runner.wappalyzer, err = wappalyzer.New()
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
@@ -350,7 +348,7 @@ func (r *Runner) prepareInput() {
 			expandedTarget := r.countTargetFromRawTarget(target)
 			if expandedTarget > 0 {
 				numHosts += expandedTarget
-				r.hm.Set(target, nil) //nolint
+				r.hm.Set(target, nil) // nolint
 			}
 		}
 	}
@@ -481,7 +479,7 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 		expandedTarget := r.countTargetFromRawTarget(target)
 		if expandedTarget > 0 {
 			numTargets += expandedTarget
-			r.hm.Set(target, nil) //nolint
+			r.hm.Set(target, nil) // nolint
 		}
 	}
 	err = finput.Close()
@@ -632,7 +630,7 @@ func (r *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", r.options.Output, err)
 			}
-			defer f.Close() //nolint
+			defer f.Close() // nolint
 		}
 		if r.options.CSVOutput {
 			outEncoding := strings.ToLower(r.options.CSVOutputEncoding)
@@ -665,7 +663,7 @@ func (r *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", r.options.Output, err)
 			}
-			defer indexFile.Close() //nolint
+			defer indexFile.Close() // nolint
 		}
 		if r.options.Screenshot && r.options.SaveScreenshot {
 			var err error
@@ -678,7 +676,7 @@ func (r *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could not open/create index screenshot file '%s': %s\n", r.options.Output, err)
 			}
-			defer indexScreenshotFile.Close() //nolint
+			defer indexScreenshotFile.Close() // nolint
 		}
 
 		for resp := range output {
@@ -1123,7 +1121,7 @@ retry:
 		} else {
 			requestIP = target.CustomIP
 		}
-		ctx := context.WithValue(context.Background(), "ip", requestIP) //nolint
+		ctx := context.WithValue(context.Background(), "ip", requestIP) // nolint
 		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	} else {
 		req, err = hp.NewRequest(method, URL.String())
@@ -1481,48 +1479,45 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", resp.Duration))
 	}
 
-	//var technologies []string
-	//if scanopts.TechDetect {
-	//	matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
-	//	for match := range matches {
-	//		technologies = append(technologies, match)
-	//	}
-	//
-	//	if len(technologies) > 0 {
-	//		sort.Strings(technologies)
-	//		technologies := strings.Join(technologies, ",")
-	//
-	//		builder.WriteString(" [")
-	//		if !scanopts.OutputWithNoColor {
-	//			builder.WriteString(aurora.Magenta(technologies).String())
-	//		} else {
-	//			builder.WriteString(technologies)
-	//		}
-	//		builder.WriteRune(']')
-	//	}
-	//}
-	techList := ""
+	var technologies []string
 	if scanopts.TechDetect {
 		techResp := http.Response{
 			Header: resp.Headers,
 			Body:   ioutil.NopCloser(bytes.NewReader(resp.Data)),
 			TLS:    nil,
 		}
-
-		techList, err = r.tech.Detect(&techResp)
-		if err != nil {
-			gologger.Warning().Msgf("detect techList error: %s", err)
+		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
+		for match := range matches {
+			technologies = append(technologies, match)
 		}
-
-		if techList != "" {
-			builder.WriteString(" [")
-			if !scanopts.OutputWithNoColor {
-				builder.WriteString(aurora.Magenta(techList).String())
-			} else {
-				builder.WriteString(techList)
+		// Wing's Rule
+		if r.options.TechRule != "" {
+			err = r.tech.Init(r.options.TechRule)
+			if err != nil {
+				gologger.Error().Msgf("init tech error: %s", err)
 			}
-			builder.WriteRune(']')
+			techList, err := r.tech.Detect(&techResp)
+			if err != nil {
+				gologger.Warning().Msgf("detect techList error: %s", err)
+			}
+
+			if techList != "" {
+				technologies = append(technologies, strings.Split(techList, ",")...)
+			}
 		}
+
+		technologies = stringz.RemoveDuplicates(technologies)
+	}
+	if len(technologies) > 0 {
+		sort.Strings(technologies)
+		technologies := strings.Join(technologies, ",")
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(technologies).String())
+		} else {
+			builder.WriteString(technologies)
+		}
+		builder.WriteRune(']')
 	}
 
 	var extractRegex []string
@@ -1778,7 +1773,7 @@ retry:
 		CDN:                isCDN,
 		CDNName:            cdnName,
 		ResponseTime:       resp.Duration.String(),
-		Technologies:       techList,
+		Technologies:       strings.Join(technologies, ","),
 		FinalURL:           finalURL,
 		FavIconMMH3:        faviconMMH3,
 		FaviconPath:        faviconPath,
@@ -1878,7 +1873,7 @@ func (r *Runner) SaveResumeConfig() error {
 }
 
 // JSON the result
-func (r Result) JSON(scanopts *ScanOptions) string { //nolint
+func (r Result) JSON(scanopts *ScanOptions) string { // nolint
 	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
 		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}
@@ -1891,7 +1886,7 @@ func (r Result) JSON(scanopts *ScanOptions) string { //nolint
 }
 
 // CSVHeader the CSV headers
-func (r Result) CSVHeader() string { //nolint
+func (r Result) CSVHeader() string { // nolint
 	buffer := bytes.Buffer{}
 	writer := csv.NewWriter(&buffer)
 
@@ -1913,7 +1908,7 @@ func (r Result) CSVHeader() string { //nolint
 }
 
 // CSVRow the CSV Row
-func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
+func (r Result) CSVRow(scanopts *ScanOptions) string { // nolint
 	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
 		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}
