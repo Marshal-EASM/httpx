@@ -9,19 +9,19 @@ require (
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/microcosm-cc/bluemonday v1.0.23
+	github.com/microcosm-cc/bluemonday v1.0.24
 	github.com/miekg/dns v1.1.54 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/projectdiscovery/cdncheck v1.0.2
+	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.12
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.8
 	github.com/projectdiscovery/gologger v1.1.10
 	github.com/projectdiscovery/hmap v0.0.11
-	github.com/projectdiscovery/mapcidr v1.1.1
+	github.com/projectdiscovery/mapcidr v1.1.2
 	github.com/projectdiscovery/rawhttp v0.1.11
-	github.com/projectdiscovery/retryablehttp-go v1.0.16
+	github.com/projectdiscovery/retryablehttp-go v1.0.17
 	github.com/projectdiscovery/wappalyzergo v0.0.94
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -42,13 +42,13 @@ require (
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/projectdiscovery/asnmap v1.0.3
+	github.com/projectdiscovery/asnmap v1.0.4
 	github.com/projectdiscovery/dsl v0.0.9
 	github.com/projectdiscovery/fastdialer v0.0.26
 	github.com/projectdiscovery/ratelimit v0.0.6
 	github.com/projectdiscovery/tlsx v1.0.9
-	github.com/projectdiscovery/utils v0.0.29
-	github.com/stretchr/testify v1.8.2
+	github.com/projectdiscovery/utils v0.0.36
+	github.com/stretchr/testify v1.8.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb
 	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37
@@ -105,7 +105,7 @@ require (
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.4 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.6 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.23 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.29 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sashabaranov/go-openai v1.9.1 // indirect
@@ -139,7 +139,7 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/oauth2 v0.7.0 // indirect
+	golang.org/x/oauth2 v0.8.0 // indirect
 	golang.org/x/tools v0.8.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.29.1 // indirect
