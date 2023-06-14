@@ -1,7 +1,7 @@
 info:
-  company: SGW
-  product: SGW
+  company: Apache
+  product: Apache
   lang: C
-  server: SGW
+  server: Apache
   category: 'Server'
-matches: banner.icontains('SGW')
+matches: banner.icontains('Apache')

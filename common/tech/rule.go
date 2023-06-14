@@ -3,7 +3,6 @@ package tech
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/projectdiscovery/gologger"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"net/http"
@@ -26,7 +25,6 @@ func ParseYaml(filename string) (FingerPrint, error) {
 	var rule Rule
 	err = yaml.Unmarshal(content, &rule)
 	if err != nil {
-		gologger.Error().Msgf("Could not parse yaml file %s: %s\n", filename, err)
 		return fingerPrint, err
 	}
 
