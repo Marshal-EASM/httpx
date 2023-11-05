@@ -7,9 +7,12 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"github.com/projectdiscovery/httpx/common/tech"
+	"github.com/projectdiscovery/rawhttp"
 	"html/template"
 	"image"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -26,7 +29,6 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/corona10/goimagehash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
@@ -49,6 +51,7 @@ import (
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
 
+	"github.com/corona10/goimagehash"
 	"github.com/projectdiscovery/ratelimit"
 	"github.com/remeh/sizedwaitgroup"
 
@@ -63,7 +66,6 @@ import (
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/mapcidr"
-	"github.com/projectdiscovery/rawhttp"
 	fileutil "github.com/projectdiscovery/utils/file"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	iputil "github.com/projectdiscovery/utils/ip"
@@ -76,6 +78,7 @@ type Runner struct {
 	hp                  *httpx.HTTPX
 	wappalyzer          *wappalyzer.Wappalyze
 	scanopts            ScanOptions
+	tech                tech.TechDetecter
 	hm                  *hybrid.HybridMap
 	stats               clistats.StatisticsClient
 	ratelimiter         ratelimit.Limiter
@@ -105,10 +108,17 @@ func New(options *Options) (*Runner, error) {
 	var err error
 	if options.TechDetect {
 		runner.wappalyzer, err = wappalyzer.New()
+		if err != nil {
+			gologger.Error().Msgf("could not create wappalyzer client: %s\n", err)
+		}
+		if options.TechRule != "" {
+			err = runner.tech.Init(options.TechRule)
+			if err != nil {
+				gologger.Error().Msgf("init tech detector error: %s", err)
+			}
+		}
 	}
-	if err != nil {
-		return nil, errors.Wrap(err, "could not create wappalyzer client")
-	}
+
 	if options.StoreResponseDir != "" {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
@@ -357,7 +367,7 @@ func (r *Runner) prepareInput() {
 			expandedTarget := r.countTargetFromRawTarget(target)
 			if expandedTarget > 0 {
 				numHosts += expandedTarget
-				r.hm.Set(target, nil) //nolint
+				r.hm.Set(target, nil) // nolint
 			}
 		}
 	}
@@ -495,7 +505,7 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 		expandedTarget := r.countTargetFromRawTarget(target)
 		if expandedTarget > 0 {
 			numTargets += expandedTarget
-			r.hm.Set(target, nil) //nolint
+			r.hm.Set(target, nil) // nolint
 		}
 	}
 	err = finput.Close()
@@ -607,7 +617,7 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	// screenshot folder
-	if r.options.Screenshot {
+	if r.options.Screenshot && !r.options.NoSaveScreenshot {
 		screenshotFolder := filepath.Join(r.options.StoreResponseDir, "screenshot")
 		if err := os.MkdirAll(screenshotFolder, os.ModePerm); err != nil {
 			gologger.Fatal().Msgf("Could not create output screenshot directory '%s': %s\n", r.options.StoreResponseDir, err)
@@ -718,9 +728,9 @@ func (r *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", r.options.Output, err)
 			}
-			defer indexFile.Close() //nolint
+			defer indexFile.Close() // nolint
 		}
-		if r.options.Screenshot {
+		if r.options.Screenshot && !r.options.NoSaveScreenshot {
 			var err error
 			indexScreenshotPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "index_screenshot.txt")
 			if r.options.Resume {
@@ -731,7 +741,7 @@ func (r *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could not open/create index screenshot file '%s': %s\n", r.options.Output, err)
 			}
-			defer indexScreenshotFile.Close() //nolint
+			defer indexScreenshotFile.Close() // nolint
 		}
 
 		for resp := range output {
@@ -929,7 +939,7 @@ func (r *Runner) RunEnumeration() {
 				row := resp.JSON(&r.scanopts)
 
 				if !r.options.OutputAll && !jsonAndCsv {
-					gologger.Silent().Msgf("%s\n", row)
+					gologger.Info().Msgf("%s\n", row)
 				}
 
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
@@ -964,7 +974,7 @@ func (r *Runner) RunEnumeration() {
 	go func(output chan Result) {
 		defer wgoutput.Done()
 
-		if r.options.Screenshot {
+		if r.options.Screenshot && r.options.StoreResponseDir != "" && !r.options.NoSaveScreenshot {
 			screenshotHtmlPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "screenshot.html")
 			screenshotHtml, err := os.Create(screenshotHtmlPath)
 			if err != nil {
@@ -1713,11 +1723,26 @@ retry:
 
 	var technologies []string
 	if scanopts.TechDetect {
+		techResp := http.Response{
+			Header: resp.Headers,
+			Body:   ioutil.NopCloser(bytes.NewReader(resp.Data)),
+			TLS:    nil,
+		}
 		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
 		for match := range matches {
 			technologies = append(technologies, match)
 		}
+		// Wing's Rule
+		if r.options.TechRule != "" {
+			techList, err := r.tech.Detect(&techResp)
+			if err != nil {
+				gologger.Warning().Msgf("detect tech error: %s", err)
+			}
 
+			if techList != "" {
+				technologies = append(technologies, strings.Split(techList, ",")...)
+			}
+		}
 		if len(technologies) > 0 {
 			sort.Strings(technologies)
 			technologies := strings.Join(technologies, ",")
@@ -1746,6 +1771,18 @@ retry:
 		}
 	}
 
+	var jsLink []string
+	// extract js link
+	if r.options.OutputExtractJS {
+		jsLink, err = resp.ExtractJSLink(fullURL)
+		if err != nil {
+			gologger.Warning().Msgf("extract js link error: %s", err)
+		}
+		if len(jsLink) > 0 {
+			builder.WriteString(" [" + strings.Join(jsLink, ",") + "]")
+		}
+
+	}
 	var finalURL string
 	if resp.HasChain() {
 		finalURL = resp.GetChainLastURL()
@@ -1935,7 +1972,7 @@ retry:
 		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
-		} else {
+		} else if !r.options.NoSaveScreenshot {
 			screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
 			screenshotPathRel = filepath.Join(hostFilename, screenshotResponseFile)
 			_ = fileutil.CreateFolder(screenshotBaseDir)
@@ -2013,6 +2050,7 @@ retry:
 			"PageType": r.errorPageClassifier.Classify(respData),
 			"pHash":    pHash,
 		},
+		ExtractJSLink: jsLink,
 	}
 	return result
 }
@@ -2111,7 +2149,7 @@ func (r *Runner) SaveResumeConfig() error {
 }
 
 // JSON the result
-func (r Result) JSON(scanopts *ScanOptions) string { //nolint
+func (r Result) JSON(scanopts *ScanOptions) string { // nolint
 	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
 		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}
@@ -2124,7 +2162,7 @@ func (r Result) JSON(scanopts *ScanOptions) string { //nolint
 }
 
 // CSVHeader the CSV headers
-func (r Result) CSVHeader() string { //nolint
+func (r Result) CSVHeader() string { // nolint
 	buffer := bytes.Buffer{}
 	writer := csv.NewWriter(&buffer)
 
@@ -2146,7 +2184,7 @@ func (r Result) CSVHeader() string { //nolint
 }
 
 // CSVRow the CSV Row
-func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
+func (r Result) CSVRow(scanopts *ScanOptions) string { // nolint
 	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
 		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}

@@ -3,14 +3,14 @@ package runner
 import (
 	"errors"
 	"fmt"
+	"github.com/go-faker/faker/v4"
+	"github.com/projectdiscovery/dsl"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/go-faker/faker/v4"
 	"github.com/go-faker/faker/v4/pkg/options"
 	"github.com/mitchellh/mapstructure"
-	"github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 	mapsutil "github.com/projectdiscovery/utils/maps"
@@ -85,6 +85,7 @@ type Result struct {
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`
 	ScreenshotPathRel  string                 `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel"`
 	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
+	ExtractJSLink      []string               `json:"js_link" csv:"js_link"`
 }
 
 // function to get dsl variables from result struct
