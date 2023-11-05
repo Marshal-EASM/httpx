@@ -71,6 +71,7 @@ type ScanOptions struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	TechRule                  string
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	MaxResponseBodySizeToSave int
@@ -277,7 +278,7 @@ type Options struct {
 	OutputFilterCondition     string
 	OutputMatchCondition      string
 	StripFilter               string
-	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
+	// The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
 	OnResult           OnResultCallback
 	DisableUpdateCheck bool
 	NoDecode           bool
@@ -286,7 +287,10 @@ type Options struct {
 	TlsImpersonate     bool
 	DisableStdin       bool
 	NoScreenshotBytes  bool
+	NoSaveScreenshot   bool
 	NoHeadlessBody     bool
+	TechRule           string
+	OutputExtractJS    bool
 }
 
 // ParseOptions parses the command line options for application
@@ -318,6 +322,7 @@ func ParseOptions() *Options {
 		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
+		flagSet.StringVarP(&options.TechRule, "tech-rule", "tr", "", "yaml rule file to use for technology detection"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
@@ -331,6 +336,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Screenshot, "screenshot", "ss", false, "enable saving screenshot of the page using headless browser"),
 		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "enable using local installed chrome for screenshot"),
 		flagSet.BoolVarP(&options.NoScreenshotBytes, "exclude-screenshot-bytes", "esb", false, "enable excluding screenshot bytes from json output"),
+		flagSet.BoolVarP(&options.NoSaveScreenshot, "exclude-save-screenshot", "ess", false, "enable excluding save screenshot to local file"),
+
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
 	)
 
@@ -348,6 +355,7 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("extractor", "Extractor",
+		flagSet.BoolVarP(&options.OutputExtractJS, "extract-js", "ejs", false, "extract js links from response body"),
 		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "display response content with matched regex", goflags.StringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, fmt.Sprintf("display response content matched by a pre-defined regex (%s)", strings.Join(maps.Keys(customextract.ExtractPresets), ",")), goflags.StringSliceOptions),
 	)
@@ -617,7 +625,7 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
 	}
 
-	if options.Screenshot && !options.StoreResponse {
+	if options.Screenshot && !options.StoreResponse && !options.NoSaveScreenshot {
 		gologger.Debug().Msgf("automatically enabling store response")
 		options.StoreResponse = true
 	}
