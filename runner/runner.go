@@ -752,7 +752,6 @@ func (r *Runner) RunEnumeration() {
 			if r.options.OnResult != nil {
 				r.options.OnResult(resp)
 			}
-
 			if resp.Err != nil {
 				// Change the error message if any port value passed explicitly
 				if url, err := r.parseURL(resp.URL); err == nil && url.Port() != "" {
