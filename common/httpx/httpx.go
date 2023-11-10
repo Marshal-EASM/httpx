@@ -44,6 +44,7 @@ func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	fastdialerOpts := fastdialer.DefaultOptions
 	fastdialerOpts.EnableFallback = true
+	fastdialerOpts.CacheType = fastdialer.Memory
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
 	fastdialerOpts.WithDialerHistory = true
@@ -53,6 +54,7 @@ func New(options *Options) (*HTTPX, error) {
 	}
 	fastdialerOpts.SNIName = options.SniName
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
+	// defer dialer.Close()
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
 	}
