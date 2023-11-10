@@ -398,7 +398,7 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		}
 	}
 	if h.Options.RandomAgent {
-		r.Header.Set("User-Agent", uarand.GetRandom()) //nolint
+		r.Header.Set("User-Agent", uarand.GetRandom()) // nolint
 	}
 }
 

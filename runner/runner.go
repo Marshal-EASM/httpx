@@ -7,8 +7,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"github.com/projectdiscovery/httpx/common/tech"
-	"github.com/projectdiscovery/rawhttp"
 	"html/template"
 	"image"
 	"io"
@@ -25,6 +23,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/projectdiscovery/httpx/common/tech"
+	"github.com/projectdiscovery/rawhttp"
 
 	"golang.org/x/exp/maps"
 
@@ -107,10 +108,10 @@ func New(options *Options) (*Runner, error) {
 	}
 	var err error
 	if options.TechDetect {
-		runner.wappalyzer, err = wappalyzer.New()
-		if err != nil {
-			gologger.Error().Msgf("could not create wappalyzer client: %s\n", err)
-		}
+		// runner.wappalyzer, err = wappalyzer.New()
+		// if err != nil {
+		// 	gologger.Error().Msgf("could not create wappalyzer client: %s\n", err)
+		// }
 		if options.TechRule != "" {
 			err = runner.tech.Init(options.TechRule)
 			if err != nil {
@@ -1728,10 +1729,10 @@ retry:
 			Body:   ioutil.NopCloser(bytes.NewReader(resp.Data)),
 			TLS:    nil,
 		}
-		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
-		for match := range matches {
-			technologies = append(technologies, match)
-		}
+		// matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
+		// for match := range matches {
+		// 	technologies = append(technologies, match)
+		// }
 		// Wing's Rule
 		if r.options.TechRule != "" {
 			techList, err := r.tech.Detect(&techResp)
