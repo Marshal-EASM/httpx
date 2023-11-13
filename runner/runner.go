@@ -323,7 +323,7 @@ func New(options *Options) (*Runner, error) {
 		}
 	}
 
-	hm, err := hybrid.New(hybrid.DefaultDiskOptions)
+	hm, err := hybrid.New(hybrid.DefaultHybridOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -592,7 +592,7 @@ func makePrintCallback() func(stats clistats.StatisticsClient) interface{} {
 func (r *Runner) Close() {
 	// nolint:errcheck // ignore
 	r.hm.Close()
-	r.hp.Dialer.Close()
+	// r.hp.Dialer.Close()
 	r.ratelimiter.Stop()
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
@@ -1309,10 +1309,10 @@ retry:
 	}
 
 	// check if the combination host:port should be skipped if belonging to a cdn
-	if r.skipCDNPort(URL.Host, URL.Port()) {
-		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
-		return Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
-	}
+	// if r.skipCDNPort(URL.Host, URL.Port()) {
+	// 	gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
+	// 	return Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
+	// }
 
 	URL.Scheme = protocol
 
@@ -1659,15 +1659,16 @@ retry:
 	var ip string
 	if target.CustomIP != "" {
 		ip = target.CustomIP
-	} else {
-		// hp.Dialer.GetDialedIP would return only the last dialed one
-		ip = hp.Dialer.GetDialedIP(URL.Host)
-		if ip == "" {
-			if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil {
-				ip = hp.Dialer.GetDialedIP(onlyHost)
-			}
-		}
 	}
+	// else {
+	// 	// hp.Dialer.GetDialedIP would return only the last dialed one
+	// 	ip = hp.Dialer.GetDialedIP(URL.Host)
+	// 	if ip == "" {
+	if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil {
+		ip = hp.Dialer.GetDialedIP(onlyHost)
+	}
+	// 	}
+	// }
 
 	var asnResponse *AsnResponse
 	if r.options.Asn {
@@ -1698,20 +1699,20 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-	var onlyHost string
-	onlyHost, _, err = net.SplitHostPort(URL.Host)
-	if err != nil {
-		onlyHost = URL.Host
-	}
-	ips, cnames, err := getDNSData(hp, onlyHost)
-	if err != nil {
-		ips = append(ips, ip)
-	}
+	// var onlyHost string
+	// onlyHost, _, err = net.SplitHostPort(URL.Host)
+	// if err != nil {
+	// 	onlyHost = URL.Host
+	// }
+	// ips, cnames, err := getDNSData(hp, onlyHost)
+	// if err != nil {
+	// 	ips = append(ips, ip)
+	// }
 
-	if scanopts.OutputCName && len(cnames) > 0 {
-		// Print only the first CNAME (full list in json)
-		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
-	}
+	// if scanopts.OutputCName && len(cnames) > 0 {
+	// 	// Print only the first CNAME (full list in json)
+	// 	builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
+	// }
 
 	isCDN, cdnName, err := hp.CdnCheck(ip)
 	if scanopts.OutputCDN && isCDN && err == nil {
@@ -1997,37 +1998,37 @@ retry:
 	}
 
 	result := Result{
-		Timestamp:          time.Now(),
-		Request:            request,
-		ResponseHeaders:    responseHeaders,
-		RawHeaders:         rawResponseHeaders,
-		Scheme:             parsed.Scheme,
-		Port:               finalPort,
-		Path:               finalPath,
-		Raw:                resp.Raw,
-		URL:                fullURL,
-		Input:              origInput,
-		ContentLength:      resp.ContentLength,
-		ChainStatusCodes:   chainStatusCodes,
-		Chain:              chainItems,
-		StatusCode:         resp.StatusCode,
-		Location:           resp.GetHeaderPart("Location", ";"),
-		ContentType:        resp.GetHeaderPart("Content-Type", ";"),
-		Title:              title,
-		str:                builder.String(),
-		VHost:              isvhost,
-		WebServer:          serverHeader,
-		ResponseBody:       serverResponseRaw,
-		BodyPreview:        bodyPreview,
-		WebSocket:          isWebSocket,
-		TLSData:            resp.TLSData,
-		CSPData:            resp.CSPData,
-		Pipeline:           pipeline,
-		HTTP2:              http2,
-		Method:             method,
-		Host:               ip,
-		A:                  ips,
-		CNAMEs:             cnames,
+		Timestamp:        time.Now(),
+		Request:          request,
+		ResponseHeaders:  responseHeaders,
+		RawHeaders:       rawResponseHeaders,
+		Scheme:           parsed.Scheme,
+		Port:             finalPort,
+		Path:             finalPath,
+		Raw:              resp.Raw,
+		URL:              fullURL,
+		Input:            origInput,
+		ContentLength:    resp.ContentLength,
+		ChainStatusCodes: chainStatusCodes,
+		Chain:            chainItems,
+		StatusCode:       resp.StatusCode,
+		Location:         resp.GetHeaderPart("Location", ";"),
+		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
+		Title:            title,
+		str:              builder.String(),
+		VHost:            isvhost,
+		WebServer:        serverHeader,
+		ResponseBody:     serverResponseRaw,
+		BodyPreview:      bodyPreview,
+		WebSocket:        isWebSocket,
+		TLSData:          resp.TLSData,
+		CSPData:          resp.CSPData,
+		Pipeline:         pipeline,
+		HTTP2:            http2,
+		Method:           method,
+		Host:             ip,
+		// A:                  ips,
+		// CNAMEs:             cnames,
 		CDN:                isCDN,
 		CDNName:            cdnName,
 		ResponseTime:       resp.Duration.String(),

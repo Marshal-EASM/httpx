@@ -2,20 +2,18 @@ package httpx
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/projectdiscovery/fastdialer/fastdialer"
+
 	"github.com/corpix/uarand"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
-	"github.com/projectdiscovery/fastdialer/fastdialer"
-	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
@@ -42,23 +40,23 @@ type HTTPX struct {
 // New httpx instance
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
-	fastdialerOpts := fastdialer.DefaultOptions
-	fastdialerOpts.EnableFallback = true
-	fastdialerOpts.CacheType = fastdialer.Memory
-	fastdialerOpts.Deny = options.Deny
-	fastdialerOpts.Allow = options.Allow
-	fastdialerOpts.WithDialerHistory = true
-	fastdialerOpts.WithZTLS = options.ZTLS
-	if len(options.Resolvers) > 0 {
-		fastdialerOpts.BaseResolvers = options.Resolvers
-	}
-	fastdialerOpts.SNIName = options.SniName
-	dialer, err := fastdialer.NewDialer(fastdialerOpts)
+	// fastdialerOpts := fastdialer.DefaultOptions
+	// fastdialerOpts.EnableFallback = true
+	// fastdialerOpts.CacheType = fastdialer.Hybrid
+	// fastdialerOpts.Deny = options.Deny
+	// fastdialerOpts.Allow = options.Allow
+	// fastdialerOpts.WithDialerHistory = true
+	// fastdialerOpts.WithZTLS = options.ZTLS
+	// if len(options.Resolvers) > 0 {
+	// 	fastdialerOpts.BaseResolvers = options.Resolvers
+	// }
+	// fastdialerOpts.SNIName = options.SniName
+	// dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	// defer dialer.Close()
-	if err != nil {
-		return nil, fmt.Errorf("could not create resolver cache: %s", err)
-	}
-	httpx.Dialer = dialer
+	// if err != nil {
+	// 	return nil, fmt.Errorf("could not create resolver cache: %s", err)
+	// }
+	// httpx.Dialer = dialer
 
 	httpx.Options = options
 
@@ -129,13 +127,8 @@ func New(options *Options) (*HTTPX, error) {
 		}
 	}
 	transport := &http.Transport{
-		DialContext: httpx.Dialer.Dial,
-		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			if options.TlsImpersonate {
-				return httpx.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}, impersonate.Random, nil)
-			}
-			return httpx.Dialer.DialTLS(ctx, network, addr)
-		},
+		DialContext:         nil,
+		DialTLSContext:      nil,
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -286,12 +279,13 @@ get_response:
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
 
 	if !h.Options.Unsafe && h.Options.TLSGrab {
-		if h.Options.ZTLS {
-			resp.TLSData = h.ZTLSGrab(httpresp)
-		} else {
-			// extracts TLS data if any
-			resp.TLSData = h.TLSGrab(httpresp)
-		}
+		// if h.Options.ZTLS {
+		// 	resp.TLSData = h.ZTLSGrab(httpresp)
+		// } else {
+		// 	// extracts TLS data if any
+		// 	resp.TLSData = h.TLSGrab(httpresp)
+		// }
+		resp.TLSData = h.TLSGrab(httpresp)
 	}
 
 	resp.CSPData = h.CSPGrab(&resp)
