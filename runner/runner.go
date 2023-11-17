@@ -322,8 +322,9 @@ func New(options *Options) (*Runner, error) {
 			options.StatsInterval = 5
 		}
 	}
-
-	hm, err := hybrid.New(hybrid.DefaultHybridOptions)
+	hyOptions := hybrid.DefaultDiskOptions
+	hyOptions.RemoveOlderThan = 1 * time.Hour
+	hm, err := hybrid.New(hyOptions)
 	if err != nil {
 		return nil, err
 	}
