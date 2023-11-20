@@ -2,13 +2,14 @@ package tech
 
 import (
 	"fmt"
-	"github.com/google/cel-go/common/types"
-	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/httpx/common/tech/cel"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/google/cel-go/common/types"
+	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/httpx/common/tech/cel"
 )
 
 type TechDetecter struct {
@@ -43,7 +44,7 @@ func (t *TechDetecter) Init(rulePath string) error {
 	return nil
 }
 
-func (t *TechDetecter) Detect(response *http.Response) (string, error) {
+func (t *TechDetecter) Detect(response *http.Response, favicon string) (string, error) {
 	options := cel.InitCelOptions()
 	env, err := cel.InitCelEnv(&options)
 	if err != nil {
@@ -83,6 +84,7 @@ func (t *TechDetecter) Detect(response *http.Response) (string, error) {
 			"protocol":    "",
 			"port":        "",
 			"status_code": response.StatusCode,
+			"favicon":     favicon,
 		})
 		if err != nil {
 			gologger.Error().Msgf(fmt.Sprintf("product: %s rule Eval error:%s", r.Infos, err.Error()))
