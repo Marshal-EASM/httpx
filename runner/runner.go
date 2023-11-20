@@ -322,8 +322,9 @@ func New(options *Options) (*Runner, error) {
 			options.StatsInterval = 5
 		}
 	}
-
-	hm, err := hybrid.New(hybrid.DefaultHybridOptions)
+	hyOptions := hybrid.DefaultDiskOptions
+	hyOptions.RemoveOlderThan = 1 * time.Hour
+	hm, err := hybrid.New(hyOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -1657,16 +1658,24 @@ retry:
 	}
 
 	var ip string
+	var ips []string
 	if target.CustomIP != "" {
 		ip = target.CustomIP
+	} else {
+		ips, err = net.LookupHost(URL.Host)
+		if err != nil {
+			ip = ""
+		} else {
+			ip = ips[0]
+		}
 	}
 	// else {
 	// 	// hp.Dialer.GetDialedIP would return only the last dialed one
 	// 	ip = hp.Dialer.GetDialedIP(URL.Host)
 	// 	if ip == "" {
-	if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil {
-		ip = hp.Dialer.GetDialedIP(onlyHost)
-	}
+	// if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil {
+	// 	ip = hp.Dialer.GetDialedIP(onlyHost)
+	// }
 	// 	}
 	// }
 
@@ -2026,7 +2035,7 @@ retry:
 		HTTP2:            http2,
 		Method:           method,
 		Host:             ip,
-		// A:                  ips,
+		A:                ips,
 		// CNAMEs:             cnames,
 		CDN:                isCDN,
 		CDNName:            cdnName,
