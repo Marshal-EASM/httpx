@@ -1814,7 +1814,9 @@ retry:
 	if resp.HasChain() {
 		finalURL = resp.GetChainLastURL()
 	}
-
+	if finalURL == "" {
+		finalURL = fullURL
+	}
 	if resp.HasChain() {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
