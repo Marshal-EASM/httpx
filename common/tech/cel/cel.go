@@ -85,7 +85,10 @@ var matchFunc = &functions.Overload{
 		}
 		re, err := regexp.Compile("(?i)" + string(v2)) // 在这里在编译时添加忽略大小写的标记
 		if err != nil {
-			return types.ValOrErr(lhs, "type:%s compile regexp error:%s", rhs.Type(), err.Error())
+			re, err = regexp.Compile(string(v2)) // 处理错误
+			if err != nil {
+				return types.ValOrErr(lhs, "type:%s compile regexp error:%s", rhs.Type(), err.Error())
+			}
 		}
 
 		ok = re.MatchString(string(v1))
