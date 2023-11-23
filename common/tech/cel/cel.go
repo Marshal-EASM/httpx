@@ -69,6 +69,8 @@ var bcontainsFunc = &functions.Overload{
 	},
 }
 
+var matchDec = decls.NewFunction("match", decls.NewInstanceOverload("matches_string", []*exprpb.Type{decls.String, decls.String}, decls.Bool))
+
 // 使用正则表达式s1来匹配s2
 var matchFunc = &functions.Overload{
 	Operator: "matches_string",
@@ -81,10 +83,12 @@ var matchFunc = &functions.Overload{
 		if !ok {
 			return types.ValOrErr(rhs, "unexpected type '%v' passed to match", rhs.Type())
 		}
-		ok, err := regexp.Match(string(v1), []byte(v2))
+		re, err := regexp.Compile("(?i)" + string(v2)) // 在这里在编译时添加忽略大小写的标记
 		if err != nil {
-			return types.NewErr("%v", err)
+			return types.ValOrErr(lhs, "type:%s compile regexp error:%s", rhs.Type(), err.Error())
 		}
+
+		ok = re.MatchString(string(v1))
 		return types.Bool(ok)
 	},
 }
@@ -106,7 +110,7 @@ var bmatchFunc = &functions.Overload{
 		if !ok {
 			return types.ValOrErr(rhs, "unexpected type '%v' passed to bmatch", rhs.Type())
 		}
-		ok, err := regexp.Match(string(v1), v2)
+		ok, err := regexp.Match(string(v2), []byte(v1))
 		if err != nil {
 			return types.NewErr("%v", err)
 		}
@@ -354,6 +358,7 @@ func InitCelOptions() CustomLib {
 		cel.Declarations(
 			bcontainsDec, iContainsDec, bmatchDec, md5Dec,
 			// startsWithDec, endsWithDec,
+			matchDec,
 			inDec, randomIntDec,
 			base64StringDec, base64BytesDec, base64DecodeStringDec, base64DecodeBytesDec,
 			urlencodeStringDec, urlencodeBytesDec, urldecodeStringDec, urldecodeBytesDec,

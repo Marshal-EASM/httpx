@@ -53,8 +53,9 @@ func (t *TechDetecter) Detect(response *http.Response, favicon string) (string, 
 	body, _ := ioutil.ReadAll(response.Body)
 	headerInfo := ""
 	for k, v := range response.Header {
-		headerInfo += fmt.Sprintf("%v: %v\n", k, v[0])
+		headerInfo += fmt.Sprintf("%v: %v\n", k, strings.Join(v, ";"))
 	}
+
 	var product []string
 	for _, r := range t.FinerPrint {
 		var matches string
@@ -74,6 +75,7 @@ func (t *TechDetecter) Detect(response *http.Response, favicon string) (string, 
 		if err != nil {
 			continue
 		}
+
 		out, _, err := prg.Eval(map[string]interface{}{
 			"body":        string(body),
 			"title":       GetTitle(string(body)),
