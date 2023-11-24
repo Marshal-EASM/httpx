@@ -35,7 +35,7 @@ func ExtractTitle(r *Response) (title string) {
 
 	// remove unwanted chars
 	title = strings.TrimSpace(strings.Trim(title, cutset))
-	title = stringsutil.ReplaceAll(title, "\n", "\r")
+	title = stringsutil.ReplaceAll(title, "", "\n", "\t", "\v", "\f", "\r")
 
 	return title
 }
@@ -66,7 +66,7 @@ func getTitleWithDom(r *Response) (*html.Node, error) {
 func renderNode(n *html.Node) string {
 	var buf bytes.Buffer
 	w := io.Writer(&buf)
-	html.Render(w, n) //nolint
+	html.Render(w, n) // nolint
 	return buf.String()
 }
 
