@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/projectdiscovery/httpx/common/tech"
 	"github.com/projectdiscovery/rawhttp"
 
@@ -1771,7 +1773,7 @@ retry:
 			}
 		}
 		if len(technologies) > 0 {
-			sort.Strings(technologies)
+			sort.Strings(funk.UniqString(technologies))
 			technologies := strings.Join(technologies, ",")
 
 			builder.WriteString(" [")
