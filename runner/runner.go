@@ -10,7 +10,6 @@ import (
 	"html/template"
 	"image"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -1752,18 +1751,13 @@ retry:
 
 	var technologies []string
 	if scanopts.TechDetect {
-		techResp := http.Response{
-			Header: resp.Headers,
-			Body:   ioutil.NopCloser(bytes.NewReader(resp.Data)),
-			TLS:    nil,
-		}
 		// matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
 		// for match := range matches {
 		// 	technologies = append(technologies, match)
 		// }
 		// Wing's Rule
 		if r.options.TechRule != "" {
-			techList, err := r.tech.Detect(&techResp, faviconMMH3)
+			techList, err := r.tech.Detect(resp, faviconMMH3)
 			if err != nil {
 				gologger.Warning().Msgf("detect tech error: %s", err)
 			}

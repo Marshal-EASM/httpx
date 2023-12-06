@@ -3,11 +3,13 @@ package tech
 import (
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
-	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/projectdiscovery/httpx/common/httpx"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Rule struct {
@@ -53,15 +55,15 @@ func LinesToSlice(str string) []string {
 	return toSlice
 }
 
-func GetCerts(resp *http.Response) []byte {
+func GetCerts(resp *httpx.Response) []byte {
 	var certs []byte
-	if resp.TLS != nil {
-		cert := resp.TLS.PeerCertificates[0]
+	if resp.TLSData.CertificateResponse != nil {
+		cert := resp.TLSData.CertificateResponse
 		var str string
 		if js, err := json.Marshal(cert); err == nil {
 			certs = js
 		}
-		str = string(certs) + cert.Issuer.String() + cert.Subject.String()
+		str = string(certs)
 		certs = []byte(str)
 	}
 	return certs

@@ -2,10 +2,10 @@ package tech
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
+
+	"github.com/projectdiscovery/httpx/common/httpx"
 
 	"github.com/google/cel-go/common/types"
 	"github.com/projectdiscovery/gologger"
@@ -44,15 +44,15 @@ func (t *TechDetecter) Init(rulePath string) error {
 	return nil
 }
 
-func (t *TechDetecter) Detect(response *http.Response, favicon string) (string, error) {
+func (t *TechDetecter) Detect(response *httpx.Response, favicon string) (string, error) {
 	options := cel.InitCelOptions()
 	env, err := cel.InitCelEnv(&options)
 	if err != nil {
 		return "", err
 	}
-	body, _ := ioutil.ReadAll(response.Body)
+	body := response.Data
 	headerInfo := ""
-	for k, v := range response.Header {
+	for k, v := range response.Headers {
 		headerInfo += fmt.Sprintf("%v: %v\n", k, strings.Join(v, ";"))
 	}
 
@@ -80,7 +80,7 @@ func (t *TechDetecter) Detect(response *http.Response, favicon string) (string, 
 			"body":        string(body),
 			"title":       GetTitle(string(body)),
 			"header":      headerInfo,
-			"server":      fmt.Sprintf("server: %v\n", response.Header["Server"]),
+			"server":      fmt.Sprintf("server: %v\n", response.Headers["Server"]),
 			"cert":        string(GetCerts(response)),
 			"banner":      headerInfo,
 			"protocol":    "",
