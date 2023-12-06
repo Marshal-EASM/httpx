@@ -57,6 +57,9 @@ func LinesToSlice(str string) []string {
 
 func GetCerts(resp *httpx.Response) []byte {
 	var certs []byte
+	if resp.TLSData == nil {
+		return certs
+	}
 	if resp.TLSData.CertificateResponse != nil {
 		cert := resp.TLSData.CertificateResponse
 		var str string
