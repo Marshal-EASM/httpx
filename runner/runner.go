@@ -1763,7 +1763,7 @@ retry:
 			}
 
 			if techList != "" {
-				technologies = append(technologies, strings.Split(techList, ",")...)
+				technologies = append(technologies, strings.Split(strings.ToLower(techList), ",")...)
 			}
 		}
 		if len(technologies) > 0 {
